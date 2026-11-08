@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Ninja School Online - Web Edition</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Cảnh báo xoay ngang trên điện thoại -->
+    <div id="rotate-hint" class="rotate-hint hidden">
+      <div class="rotate-box">
+        <div class="rotate-icon">📱↻</div>
+        <p>Vui lòng xoay ngang điện thoại để chơi Ninja School mượt hơn!</p>
+      </div>
+    </div>
+
+    <!-- Lớp phủ Đăng nhập / Đăng ký -->
+    <div id="auth-screen" class="screen-overlay">
+      <div class="card auth-card">
+        <div class="logo-banner">
+          <img src="/icons/icon-192.png" alt="NSO" class="logo-icon" />
+          <div>
+            <h1>NINJA SCHOOL</h1>
+            <p class="subtitle">Web Edition • Làng Tone Hồi Ức</p>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button id="tab-login" class="tab-btn active" type="button">Đăng nhập</button>
+          <button id="tab-register" class="tab-btn" type="button">Đăng ký</button>
+        </div>
+
+        <form id="auth-form">
+          <label class="field">
+            <span>Tên tài khoản</span>
+            <input id="auth-username" type="text" placeholder="3-24 ký tự (a-z, 0-9, _)" autocomplete="username" required />
+          </label>
+          <label class="field">
+            <span>Mật khẩu</span>
+            <input id="auth-password" type="password" placeholder="Tối thiểu 4 ký tự" autocomplete="current-password" required />
+          </label>
+          <div id="auth-error" class="form-error hidden"></div>
+          <button id="auth-submit" class="btn btn-primary full" type="submit">Đăng nhập</button>
+        </form>
+        <div id="server-status" class="server-status">Đang tải dữ liệu trò chơi...</div>
+      </div>
+    </div>
+
+    <!-- Lớp phủ Chọn / Tạo Nhân vật -->
+    <div id="char-screen" class="screen-overlay hidden">
+      <div class="card char-card">
+        <div class="char-header">
+          <div>
+            <h2>Chọn Nhẫn Giả</h2>
+            <p id="char-account-label" class="subtitle"></p>
+          </div>
+          <button id="btn-back-auth" class="btn btn-ghost" type="button">Đổi tài khoản</button>
+        </div>
+
+        <div class="char-layout">
+          <!-- Danh sách nhân vật hiện có -->
+          <div class="char-list-panel">
+            <h3>Nhân vật của bạn (tối đa 3)</h3>
+            <div id="char-list" class="char-list"></div>
+          </div>
+
+          <!-- Form tạo nhân vật mới -->
+          <div class="char-create-panel">
+            <h3>Tạo nhân vật mới</h3>
+            <div class="create-body">
+              <div class="preview-box">
+                <canvas id="char-create-preview" width="120" height="140"></canvas>
+                <span id="preview-class-label" class="preview-tag">Kiếm</span>
+              </div>
+              <form id="create-char-form" class="create-form">
+                <label class="field">
+                  <span>Tên nhân vật</span>
+                  <input id="new-char-name" type="text" placeholder="3-16 ký tự (a-z, 0-9, _)" required />
+                </label>
+
+                <div class="field">
+                  <span>Giới tính</span>
+                  <div class="pill-group" id="gender-pills">
+                    <button type="button" class="pill active" data-gender="0">Nam</button>
+                    <button type="button" class="pill" data-gender="1">Nữ</button>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <span>Kiểu tóc</span>
+                  <div class="pill-group" id="hair-pills"></div>
+                </div>
+
+                <div class="field">
+                  <span>Chọn phái nhập môn</span>
+                  <div class="class-grid" id="class-pills"></div>
+                </div>
+
+                <div id="create-error" class="form-error hidden"></div>
+                <button id="btn-create-char" class="btn btn-primary full" type="submit">Tạo & Vào Làng</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUD Trong Game -->
+    <div id="hud" class="hud hidden">
+      <!-- Góc trên trái: Thanh thông tin nhân vật -->
+      <div class="hud-top-left">
+        <div class="player-plate">
+          <div class="player-row">
+            <span id="hud-name" class="player-name">Ninja</span>
+            <span id="hud-level" class="lv-badge">Lv.1</span>
+            <span id="hud-clan-tag" class="clan-badge hidden"></span>
+          </div>
+          <div class="bar-wrap hp">
+            <div id="hud-hp-bar" class="bar-fill" style="width:100%"></div>
+            <span id="hud-hp-text" class="bar-text">100/100</span>
+          </div>
+          <div class="bar-wrap mp">
+            <div id="hud-mp-bar" class="bar-fill" style="width:100%"></div>
+            <span id="hud-mp-text" class="bar-text">100/100</span>
+          </div>
+          <div class="bar-wrap exp">
+            <div id="hud-exp-bar" class="bar-fill" style="width:0%"></div>
+            <span id="hud-exp-text" class="bar-text">0.0%</span>
+          </div>
+          <div class="currency-row">
+            <span class="cur-xu" title="Xu">🟡 <b id="hud-xu">0</b></span>
+            <span class="cur-yen" title="Yên">🪙 <b id="hud-yen">0</b></span>
+            <span class="cur-luong" title="Lượng">💎 <b id="hud-luong">0</b></span>
+          </div>
+        </div>
+        <button id="hud-quest-pill" class="quest-pill hidden" type="button" title="Xem chi tiết nhiệm vụ"></button>
+      </div>
+
+      <!-- Góc trên phải: Map, Khu, Nút mở tính năng -->
+      <div class="hud-top-right">
+        <div class="map-plate">
+          <div class="map-line">
+            <span id="hud-map-name" class="map-name">Làng Tone</span>
+            <select id="hud-zone-select" class="zone-select" title="Đổi khu vực"></select>
+          </div>
+          <div class="coord-line">
+            <span id="hud-coords">228, 192</span>
+            <span id="hud-ping">0ms</span>
+          </div>
+        </div>
+        <div class="menu-bar">
+          <button class="hud-btn" id="btn-panel-char" title="Tiềm năng & Nhân vật">Nhân vật</button>
+          <button class="hud-btn" id="btn-panel-bag" title="Hành trang & Trang bị">Túi đồ</button>
+          <button class="hud-btn" id="btn-panel-skills" title="Kỹ năng">Kỹ năng</button>
+          <button class="hud-btn" id="btn-panel-task" title="Nhiệm vụ">Nhiệm vụ</button>
+          <button class="hud-btn" id="btn-panel-upgrade" title="Cường hóa & Luyện đá">Đập đồ</button>
+          <button class="hud-btn" id="btn-panel-clan" title="Gia tộc">Gia tộc</button>
+          <button class="hud-btn" id="btn-panel-events" title="Săn Boss & Hang động">Sự kiện</button>
+          <button class="hud-btn" id="btn-pk-toggle" title="Bật/Tắt Đồ sát PK">PK</button>
+          <button class="hud-btn auto-btn" id="btn-auto-toggle" title="Bật/Tắt Auto Treo máy + Giữ sáng màn hình">⚡ Auto</button>
+          <button class="hud-btn" id="btn-auto-cfg" title="Cấu hình Auto">⚙</button>
+          <button class="hud-btn" id="btn-toggle-touch" title="Bật/Tắt tay cầm cảm ứng">🎮</button>
+          <button class="hud-btn danger" id="btn-logout-game" title="Thoát nhân vật">Thoát</button>
+        </div>
+      </div>
+
+      <!-- Menu tương tác nhanh khi click người chơi khác -->
+      <div id="player-ctx-menu" class="player-ctx hidden">
+        <div class="ctx-title" id="ctx-player-name">Người chơi</div>
+        <div class="ctx-btns">
+          <button type="button" class="mini-btn" id="ctx-btn-trade">🤝 Giao dịch</button>
+          <button type="button" class="mini-btn" id="ctx-btn-arena">🏟 Lôi đài</button>
+          <button type="button" class="mini-btn" id="ctx-btn-clan">🏯 Mời Gia tộc</button>
+          <button type="button" class="mini-btn danger-mini" id="ctx-btn-pk">⚔ Đánh PK</button>
+          <button type="button" class="mini-btn" id="ctx-btn-close">✕</button>
+        </div>
+      </div>
+
+      <!-- Khung Chat & Log Map (góc dưới trái) -->
+      <div class="hud-chat-area" id="hud-chat-area">
+        <div id="chat-log" class="chat-log"></div>
+        <form id="chat-form" class="chat-form">
+          <select id="chat-channel" class="chat-ch-sel" title="Kênh chat">
+            <option value="map">Map</option>
+            <option value="clan">Tộc</option>
+          </select>
+          <input id="chat-input" type="text" placeholder="Enter để chat..." maxlength="140" />
+          <button type="submit" class="btn-send">Gửi</button>
+        </form>
+      </div>
+
+      <!-- Thanh Skill Phím Tắt 1-5 (Desktop & Chung) -->
+      <div class="hotbar" id="skill-hotbar"></div>
+
+      <!-- Cụm Điều Khiển Cảm Ứng Đa Điểm (Mobile) -->
+      <div id="touch-controls" class="touch-controls hidden">
+        <div class="dpad" id="touch-dpad">
+          <button class="d-btn up" data-dir="up" type="button">▲</button>
+          <button class="d-btn left" data-dir="left" type="button">◀</button>
+          <button class="d-btn right" data-dir="right" type="button">▶</button>
+          <button class="d-btn down" data-dir="down" type="button">▼</button>
+        </div>
+
+        <div class="action-cluster">
+          <button class="act-btn small auto-touch" id="touch-auto" type="button">Auto</button>
+          <button class="act-btn small pickup" id="touch-pickup" type="button">Nhặt</button>
+          <button class="act-btn small portal" id="touch-portal" type="button">Cổng</button>
+          <button class="act-btn small jump" id="touch-jump" type="button">Nhảy</button>
+          <button class="act-btn attack" id="touch-attack" type="button">Đánh</button>
+        </div>
+      </div>
+
+      <!-- Thông báo nổi Toast -->
+      <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Hộp thoại Tử Trận / Hồi Sinh -->
+    <div id="death-overlay" class="modal-backdrop hidden">
+      <div class="modal-box small-modal">
+        <h3>Bạn đã bị hạ gục!</h3>
+        <p>Chọn cách hồi sinh để tiếp tục hành trình Nhẫn Giả:</p>
+        <div class="modal-actions">
+          <button id="btn-revive-home" class="btn btn-primary" type="button">Về làng (Miễn phí)</button>
+          <button id="btn-revive-spot" class="btn btn-accent" type="button">Tại chỗ (1 Lượng)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cửa sổ Popup Đa Năng (Tiềm năng, Túi đồ, Kỹ năng...) -->
+    <div id="modal-overlay" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="modal-title">Thông tin</h3>
+          <button id="modal-close" class="btn btn-ghost" type="button">✕</button>
+        </div>
+        <div id="modal-body" class="modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

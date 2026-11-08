@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: nso-web
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DB_POOL_MAX
+        value: "5"
+      - key: AUTO_INIT_DB
+        value: "true"
+      - key: AUTO_SAVE_INTERVAL_SEC
+        value: "45"

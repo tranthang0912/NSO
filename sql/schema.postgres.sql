@@ -1,0 +1,292 @@
+-- Ninja School Online (Web Edition) - PostgreSQL Schema
+-- 100% pure PostgreSQL syntax (compatible with Aiven PostgreSQL Free)
+-- Excludes billing/Momo/charging/news/CMS tables from legacy schema.
+
+-- ==========================================
+-- STATIC GAME REFERENCE TABLES
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS clazz (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS map (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    npc TEXT NOT NULL,
+    waypoint TEXT NOT NULL,
+    monster TEXT NOT NULL,
+    zone_number INTEGER NOT NULL DEFAULT 1,
+    location_stand TEXT NOT NULL,
+    tile_id INTEGER NOT NULL,
+    bg_id INTEGER NOT NULL,
+    map_type INTEGER NOT NULL,
+    item TEXT NOT NULL DEFAULT '[]',
+    behind TEXT NOT NULL DEFAULT '[]',
+    betwen TEXT NOT NULL DEFAULT '[]',
+    front TEXT NOT NULL DEFAULT '[]'
+);
+
+CREATE TABLE IF NOT EXISTS monster (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    level INTEGER NOT NULL DEFAULT 0,
+    boss BOOLEAN NOT NULL DEFAULT FALSE,
+    type INTEGER NOT NULL DEFAULT 0,
+    hp INTEGER NOT NULL DEFAULT 1,
+    range_move INTEGER NOT NULL DEFAULT 0,
+    speed INTEGER NOT NULL DEFAULT 0,
+    type_fly INTEGER NOT NULL DEFAULT 0,
+    n_img INTEGER NOT NULL DEFAULT 0,
+    move TEXT NOT NULL,
+    attack TEXT NOT NULL,
+    sprites TEXT NOT NULL,
+    frames TEXT NOT NULL,
+    sequence TEXT NOT NULL,
+    frame_char TEXT NOT NULL,
+    index_splash TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS npc (
+    id INTEGER PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    head INTEGER NOT NULL,
+    body INTEGER NOT NULL,
+    leg INTEGER NOT NULL,
+    menu TEXT NOT NULL DEFAULT '[]'
+);
+
+CREATE TABLE IF NOT EXISTS item (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    type INTEGER NOT NULL,
+    gender INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    icon INTEGER NOT NULL,
+    part INTEGER NOT NULL,
+    fashion INTEGER NOT NULL DEFAULT -1,
+    is_up_to_up BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS item_option (
+    id INTEGER PRIMARY KEY,
+    type INTEGER NOT NULL,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS skill_template (
+    id INTEGER PRIMARY KEY,
+    class_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    max_point SMALLINT NOT NULL,
+    type SMALLINT NOT NULL,
+    icon INTEGER NOT NULL,
+    description TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS skill (
+    id INTEGER PRIMARY KEY,
+    template_id INTEGER NOT NULL,
+    max_fight INTEGER NOT NULL,
+    level INTEGER NOT NULL,
+    mana_use INTEGER NOT NULL,
+    cooldown INTEGER NOT NULL,
+    point INTEGER NOT NULL,
+    dx INTEGER NOT NULL,
+    dy INTEGER NOT NULL,
+    options TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_skill_template_id ON skill (template_id, point);
+
+CREATE TABLE IF NOT EXISTS skill_option (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS nj_part (
+    id INTEGER PRIMARY KEY,
+    type INTEGER NOT NULL,
+    part TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS nj_skill (
+    id INTEGER PRIMARY KEY,
+    skill_id INTEGER NOT NULL,
+    eff_id INTEGER NOT NULL,
+    num_eff INTEGER NOT NULL,
+    skill_stand TEXT NOT NULL,
+    skill_fly TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS nj_arrow (
+    id INTEGER PRIMARY KEY,
+    img_id TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS nj_effect (
+    id INTEGER PRIMARY KEY,
+    info TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS nj_image (
+    id INTEGER PRIMARY KEY,
+    small_image TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS effect (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    type INTEGER NOT NULL,
+    icon INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS effect_data (
+    id INTEGER PRIMARY KEY,
+    sprites TEXT NOT NULL,
+    frames TEXT NOT NULL,
+    running TEXT NOT NULL,
+    frame_char TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS effect_data_auto (
+    id INTEGER PRIMARY KEY,
+    sprites TEXT NOT NULL,
+    frames TEXT NOT NULL,
+    running TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS stores (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS store_data (
+    id INTEGER PRIMARY KEY,
+    item_id INTEGER NOT NULL,
+    sys INTEGER NOT NULL,
+    store INTEGER NOT NULL,
+    is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    coin INTEGER NOT NULL DEFAULT 0,
+    gold INTEGER NOT NULL DEFAULT 0,
+    yen INTEGER NOT NULL DEFAULT 0,
+    expire BIGINT NOT NULL DEFAULT -1,
+    options TEXT NOT NULL DEFAULT '[]'
+);
+CREATE INDEX IF NOT EXISTS idx_store_data_store ON store_data (store);
+
+CREATE TABLE IF NOT EXISTS weapon_store (
+    id INTEGER PRIMARY KEY,
+    template_id INTEGER NOT NULL,
+    sys INTEGER NOT NULL,
+    xu INTEGER NOT NULL DEFAULT 0,
+    luong INTEGER NOT NULL DEFAULT 0,
+    yen INTEGER NOT NULL DEFAULT 0,
+    expire BIGINT NOT NULL DEFAULT -1,
+    options TEXT NOT NULL DEFAULT '[]'
+);
+
+CREATE TABLE IF NOT EXISTS task (
+    id INTEGER PRIMARY KEY,
+    npcs TEXT NOT NULL,
+    maps TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS task_template (
+    task_id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    subnames TEXT NOT NULL,
+    counts TEXT NOT NULL,
+    level_require INTEGER NOT NULL,
+    kill_mob TEXT NOT NULL,
+    pick_item TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS others (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    val TEXT NOT NULL
+);
+
+-- ==========================================
+-- PLAYER, ACCOUNT & CLAN TABLES
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    username VARCHAR(32) NOT NULL UNIQUE,
+    password_hash VARCHAR(120) NOT NULL,
+    luong BIGINT NOT NULL DEFAULT 0,
+    role SMALLINT NOT NULL DEFAULT 0,
+    online BOOLEAN NOT NULL DEFAULT FALSE,
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS clans (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    name VARCHAR(32) NOT NULL UNIQUE,
+    leader_name VARCHAR(24) NOT NULL,
+    assist_name VARCHAR(24) NOT NULL DEFAULT '',
+    alert TEXT NOT NULL DEFAULT '',
+    coin BIGINT NOT NULL DEFAULT 0,
+    level INTEGER NOT NULL DEFAULT 1,
+    exp INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS players (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(24) NOT NULL UNIQUE,
+    gender SMALLINT NOT NULL DEFAULT 0,
+    class_id SMALLINT NOT NULL DEFAULT 0,
+    head_id INTEGER NOT NULL DEFAULT 11,
+    level INTEGER NOT NULL DEFAULT 1,
+    exp BIGINT NOT NULL DEFAULT 0,
+    hp INTEGER NOT NULL DEFAULT 100,
+    mp INTEGER NOT NULL DEFAULT 100,
+    point INTEGER NOT NULL DEFAULT 0,
+    spoint INTEGER NOT NULL DEFAULT 0,
+    potential TEXT NOT NULL DEFAULT '[15,5,5,5]',
+    map_id INTEGER NOT NULL DEFAULT 22,
+    pos_x INTEGER NOT NULL DEFAULT 1741,
+    pos_y INTEGER NOT NULL DEFAULT 264,
+    save_map_id INTEGER NOT NULL DEFAULT 22,
+    xu BIGINT NOT NULL DEFAULT 2000,
+    xu_in_box BIGINT NOT NULL DEFAULT 0,
+    yen BIGINT NOT NULL DEFAULT 5000,
+    bag_capacity INTEGER NOT NULL DEFAULT 30,
+    box_capacity INTEGER NOT NULL DEFAULT 30,
+    equipped TEXT NOT NULL DEFAULT '[]',
+    bag TEXT NOT NULL DEFAULT '[]',
+    box TEXT NOT NULL DEFAULT '[]',
+    skills TEXT NOT NULL DEFAULT '[]',
+    hotkey_skills TEXT NOT NULL DEFAULT '[-1,-1,-1,-1,-1]',
+    task_id INTEGER NOT NULL DEFAULT 0,
+    task_index INTEGER NOT NULL DEFAULT 0,
+    task_count INTEGER NOT NULL DEFAULT 0,
+    clan_id BIGINT REFERENCES clans(id) ON DELETE SET NULL,
+    pk_mode SMALLINT NOT NULL DEFAULT 0,
+    auto_settings TEXT NOT NULL DEFAULT '{"hpThreshold":50,"mpThreshold":35,"pickupAll":true}',
+    online BOOLEAN NOT NULL DEFAULT FALSE,
+    last_save_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_players_user_id ON players (user_id);
+
+CREATE TABLE IF NOT EXISTS clan_members (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    clan_id BIGINT NOT NULL REFERENCES clans(id) ON DELETE CASCADE,
+    player_id BIGINT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    player_name VARCHAR(24) NOT NULL,
+    class_id SMALLINT NOT NULL DEFAULT 0,
+    level INTEGER NOT NULL DEFAULT 1,
+    member_type SMALLINT NOT NULL DEFAULT 0,
+    point_clan INTEGER NOT NULL DEFAULT 0,
+    joined_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (player_id)
+);
+CREATE INDEX IF NOT EXISTS idx_clan_members_clan_id ON clan_members (clan_id);
